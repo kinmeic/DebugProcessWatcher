@@ -16,7 +16,7 @@ mkdir -p "$MACOS_DIR" "$RESOURCES_DIR"
 
 cp "$ROOT_DIR/Artifacts/Legacy/Info.plist" "$CONTENTS_DIR/Info.plist"
 cp "$BUILD_DIR/DebugProcessWatcher" "$MACOS_DIR/DebugProcessWatcher"
-cp -R "$SOURCE_BUNDLE" "$RESOURCES_DIR/"
+cp -R "$SOURCE_BUNDLE" "$APP_DIR/"
 
 if [[ -f "$SOURCE_BUNDLE/AppIcon.icns" ]]; then
   cp "$SOURCE_BUNDLE/AppIcon.icns" "$RESOURCES_DIR/AppIcon.icns"
@@ -25,5 +25,5 @@ fi
 chmod +x "$MACOS_DIR/DebugProcessWatcher"
 
 # Ad-hoc sign all nested bundles and the main app (required for macOS 15+)
-codesign --force --deep --sign - "$RESOURCES_DIR/DebugProcessWatcher_DebugProcessWatcher.bundle"
+codesign --force --deep --sign - "$APP_DIR/DebugProcessWatcher_DebugProcessWatcher.bundle"
 codesign --force --deep --sign - "$APP_DIR"

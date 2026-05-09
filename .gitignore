@@ -4,3 +4,6 @@
 DerivedData/
 Artifacts/DebugProcessWatcher.app/
 Artifacts/GeneratedBackup/
+Artifacts/Legacy/DebugProcessWatcher.app/
+Artifacts/Legacy/build/
+Artifacts/Release/

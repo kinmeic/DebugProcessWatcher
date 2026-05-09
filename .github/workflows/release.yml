@@ -1,0 +1,46 @@
+name: Build And Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+
+      - name: Build Release
+        run: swift build -c release
+
+      - name: Package App Bundle
+        run: |
+          mkdir -p Artifacts/Release
+          BUILD_CONFIGURATION=release \
+          OUTPUT_APP_DIR="$PWD/Artifacts/Release/DebugProcessWatcher.app" \
+          ./Scripts/package-app.sh
+
+      - name: Ad Hoc Sign App
+        run: codesign --force --deep --sign - "Artifacts/Release/DebugProcessWatcher.app"
+
+      - name: Create Zip Archive
+        run: |
+          ditto -c -k --keepParent \
+            "Artifacts/Release/DebugProcessWatcher.app" \
+            "Artifacts/Release/DebugProcessWatcher-macOS.zip"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: Artifacts/Release/DebugProcessWatcher-macOS.zip
+          generate_release_notes: true

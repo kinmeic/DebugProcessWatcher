@@ -13,9 +13,9 @@
     <key>CFBundleDisplayName</key>
     <string>Debug Process Watcher</string>
     <key>CFBundleVersion</key>
-    <string>1.0.1</string>
+    <string>1.0.2</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.0.1</string>
+    <string>1.0.2</string>
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>LSUIElement</key>

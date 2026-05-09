@@ -23,3 +23,7 @@ if [[ -f "$SOURCE_BUNDLE/AppIcon.icns" ]]; then
 fi
 
 chmod +x "$MACOS_DIR/DebugProcessWatcher"
+
+# Ad-hoc sign all nested bundles and the main app (required for macOS 15+)
+codesign --force --deep --sign - "$RESOURCES_DIR/DebugProcessWatcher_DebugProcessWatcher.bundle"
+codesign --force --deep --sign - "$APP_DIR"

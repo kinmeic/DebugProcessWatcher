@@ -338,24 +338,9 @@ struct ProcessListView: View {
 
     private func openTerminal(at cwd: String) {
         guard cwd != "-" else { return }
-        let escapedCWD = cwd
-            .replacingOccurrences(of: "\\", with: "\\\\")
-            .replacingOccurrences(of: "\"", with: "\\\"")
-
-        let script = """
-        tell application "Terminal"
-            activate
-            if (count of windows) is 0 then
-                do script "cd \\"\(escapedCWD)\\""
-            else
-                do script "cd \\"\(escapedCWD)\\"" in selected tab of front window
-            end if
-        end tell
-        """
-
         let task = Process()
-        task.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
-        task.arguments = ["-e", script]
+        task.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+        task.arguments = ["-a", "Terminal", cwd]
 
         do {
             try task.run()

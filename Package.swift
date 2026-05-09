@@ -20,6 +20,11 @@ let package = Package(
             resources: [
                 .process("Resources")
             ]
+        ),
+        .testTarget(
+            name: "DebugProcessWatcherTests",
+            dependencies: ["DebugProcessWatcher"],
+            path: "Tests/DebugProcessWatcherTests"
         )
     ]
 )

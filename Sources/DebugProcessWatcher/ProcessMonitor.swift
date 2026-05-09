@@ -124,7 +124,7 @@ final class ProcessMonitor: ObservableObject {
         }
     }
 
-    private struct LsofItem {
+    struct LsofItem {
         let pid: Int
         let command: String
         let proto: String
@@ -163,67 +163,7 @@ final class ProcessMonitor: ObservableObject {
             return []
         }
 
-        var results: [LsofItem] = []
-        var currentPID: Int?
-        var currentProto: String?
-        var currentCommand: String?
-
-        for line in text.components(separatedBy: .newlines) {
-            guard !line.isEmpty else { continue }
-            let prefix = line.prefix(1)
-            let value = String(line.dropFirst())
-            switch prefix {
-            case "p":
-                if let pid = currentPID, let proto = currentProto, let cmd = currentCommand {
-                    let addrs = collectAddresses(text: text, after: line)
-                    for (addr, port) in addrs {
-                        results.append(LsofItem(pid: pid, command: cmd, proto: proto, address: addr, port: port))
-                    }
-                }
-                currentPID = Int(value)
-                currentProto = nil
-                currentCommand = nil
-            case "P":
-                currentProto = value
-            case "c":
-                currentCommand = value
-            default:
-                break
-            }
-        }
-        if let pid = currentPID, let proto = currentProto, let cmd = currentCommand {
-            let addrs = collectAddresses(text: text)
-            for (addr, port) in addrs {
-                results.append(LsofItem(pid: pid, command: cmd, proto: proto, address: addr, port: port))
-            }
-        }
-        return results
-    }
-
-    private nonisolated static func collectAddresses(text: String, after startLine: String? = nil) -> [(String, Int)] {
-        var inBlock = startLine == nil
-        var seen = Set<String>()
-        var results: [(String, Int)] = []
-
-        for line in text.components(separatedBy: .newlines) {
-            if let start = startLine, line == start {
-                inBlock = true
-                continue
-            }
-            if !inBlock { continue }
-            if line.hasPrefix("p") && line != startLine { break }
-            if line.hasPrefix("n") {
-                let val = String(line.dropFirst())
-                if let parsed = parseAddress(val) {
-                    let key = "\(parsed.0):\(parsed.1)"
-                    if !seen.contains(key) {
-                        seen.insert(key)
-                        results.append(parsed)
-                    }
-                }
-            }
-        }
-        return results
+        return parseLsofItems(from: text)
     }
 
     private nonisolated static func runPS(pids: Set<Int>) -> [Int: PSInfo] {
@@ -275,13 +215,11 @@ final class ProcessMonitor: ObservableObject {
         task.arguments = ["-p", pidList, "-a", "-d", "cwd", "-F", "pn"]
         let pipe = Pipe()
         task.standardOutput = pipe
+        var terminationStatus: Int32 = 0
         do {
             try task.run()
             task.waitUntilExit()
-            guard task.terminationStatus == 0 else {
-                NSLog("[DPW] lsof cwd exited with status \(task.terminationStatus)")
-                return [:]
-            }
+            terminationStatus = task.terminationStatus
         } catch {
             NSLog("[DPW] lsof cwd failed: \(error)")
             return [:]
@@ -293,20 +231,83 @@ final class ProcessMonitor: ObservableObject {
             return [:]
         }
 
-        var results: [Int: String] = [:]
+        if terminationStatus != 0 {
+            NSLog("[DPW] lsof cwd exited with status \(terminationStatus), parsing partial output")
+        }
+
+        return parseCWDMap(from: text)
+    }
+
+    nonisolated static func parseLsofItems(from text: String) -> [LsofItem] {
+        var results: [LsofItem] = []
+        var seen = Set<String>()
         var currentPID: Int?
+        var currentProto: String?
+        var currentCommand: String?
+
         for line in text.components(separatedBy: .newlines) {
             guard !line.isEmpty else { continue }
+
+            let prefix = line.prefix(1)
+            let value = String(line.dropFirst())
+
+            switch prefix {
+            case "p":
+                currentPID = Int(value)
+                currentProto = nil
+                currentCommand = nil
+            case "P":
+                currentProto = value
+            case "c":
+                currentCommand = value
+            case "n":
+                guard
+                    let pid = currentPID,
+                    let proto = currentProto,
+                    let command = currentCommand,
+                    let parsed = parseAddress(value)
+                else {
+                    continue
+                }
+
+                let key = "\(pid)|\(parsed.0)|\(parsed.1)"
+                guard seen.insert(key).inserted else { continue }
+
+                results.append(
+                    LsofItem(
+                        pid: pid,
+                        command: command,
+                        proto: proto,
+                        address: parsed.0,
+                        port: parsed.1
+                    )
+                )
+            default:
+                break
+            }
+        }
+
+        return results
+    }
+
+    nonisolated static func parseCWDMap(from text: String) -> [Int: String] {
+        var results: [Int: String] = [:]
+        var currentPID: Int?
+
+        for line in text.components(separatedBy: .newlines) {
+            guard !line.isEmpty else { continue }
+
             if line.hasPrefix("p") {
                 currentPID = Int(line.dropFirst())
             } else if line.hasPrefix("n"), let pid = currentPID {
                 results[pid] = String(line.dropFirst())
             }
         }
+
         return results
     }
 
-    private nonisolated static func parseAddress(_ raw: String) -> (String, Int)? {
+    nonisolated static func parseAddress(_ raw: String) -> (String, Int)? {
         var s = raw
         if let idx = s.firstIndex(of: "(") {
             s = String(s[..<idx]).trimmingCharacters(in: .whitespaces)

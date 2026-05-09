@@ -14,7 +14,15 @@ struct MenuBarContent: View {
         .keyboardShortcut("D", modifiers: .command)
 
         Button("Open Terminal") {
-            NSWorkspace.shared.openApplication(at: URL(fileURLWithPath: "/System/Applications/Utilities/Terminal.app"), configuration: NSWorkspace.OpenConfiguration())
+            let task = Process()
+            task.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+            task.arguments = [
+                "-e", "tell application \"Terminal\"",
+                "-e", "activate",
+                "-e", "do script \"clear\"",
+                "-e", "end tell"
+            ]
+            try? task.run()
         }
 
         Divider()

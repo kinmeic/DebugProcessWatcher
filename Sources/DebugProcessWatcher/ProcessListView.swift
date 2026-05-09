@@ -338,10 +338,15 @@ struct ProcessListView: View {
 
     private func openTerminal(at cwd: String) {
         guard cwd != "-" else { return }
+        let escaped = cwd.replacingOccurrences(of: "'", with: "'\\''")
         let task = Process()
-        task.executableURL = URL(fileURLWithPath: "/usr/bin/open")
-        task.arguments = ["-a", "Terminal", cwd]
-
+        task.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+        task.arguments = [
+            "-e", "tell application \"Terminal\"",
+            "-e", "activate",
+            "-e", "do script \"cd '\(escaped)'\"",
+            "-e", "end tell"
+        ]
         do {
             try task.run()
         } catch {

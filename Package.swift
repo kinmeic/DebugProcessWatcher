@@ -17,8 +17,8 @@ let package = Package(
         .executableTarget(
             name: "DebugProcessWatcher",
             path: "Sources/DebugProcessWatcher",
-            resources: [
-                .process("Resources")
+            exclude: [
+                "Resources"
             ]
         ),
         .testTarget(

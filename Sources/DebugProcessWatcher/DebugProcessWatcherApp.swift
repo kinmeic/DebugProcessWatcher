@@ -26,15 +26,15 @@ struct DebugProcessWatcherApp: App {
 
     private var menuBarIcon: NSImage? {
         guard
-            let icon1xURL = Bundle.module.url(
+            let icon1xURL = Bundle.main.url(
                 forResource: "menu_icon_24",
                 withExtension: "png",
-                subdirectory: "Assets.xcassets/MenuBarIcon.imageset"
+                subdirectory: "MenuBarIcon.imageset"
             ),
-            let icon2xURL = Bundle.module.url(
+            let icon2xURL = Bundle.main.url(
                 forResource: "menu_icon_48",
                 withExtension: "png",
-                subdirectory: "Assets.xcassets/MenuBarIcon.imageset"
+                subdirectory: "MenuBarIcon.imageset"
             ),
             let icon1xData = try? Data(contentsOf: icon1xURL),
             let icon2xData = try? Data(contentsOf: icon2xURL),

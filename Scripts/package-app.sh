@@ -9,21 +9,24 @@ APP_DIR="$OUTPUT_APP_DIR"
 CONTENTS_DIR="$APP_DIR/Contents"
 MACOS_DIR="$CONTENTS_DIR/MacOS"
 RESOURCES_DIR="$CONTENTS_DIR/Resources"
-SOURCE_BUNDLE="$BUILD_DIR/DebugProcessWatcher_DebugProcessWatcher.bundle"
+SOURCE_DIR="$ROOT_DIR/Sources/DebugProcessWatcher/Resources"
 
 rm -rf "$APP_DIR"
 mkdir -p "$MACOS_DIR" "$RESOURCES_DIR"
 
 cp "$ROOT_DIR/Artifacts/Legacy/Info.plist" "$CONTENTS_DIR/Info.plist"
 cp "$BUILD_DIR/DebugProcessWatcher" "$MACOS_DIR/DebugProcessWatcher"
-cp -R "$SOURCE_BUNDLE" "$APP_DIR/"
 
-if [[ -f "$SOURCE_BUNDLE/AppIcon.icns" ]]; then
-  cp "$SOURCE_BUNDLE/AppIcon.icns" "$RESOURCES_DIR/AppIcon.icns"
+# Copy menu bar icon resources directly into Contents/Resources (no nested bundle)
+mkdir -p "$RESOURCES_DIR/MenuBarIcon.imageset"
+cp "$SOURCE_DIR/Assets.xcassets/MenuBarIcon.imageset/menu_icon_24.png" "$RESOURCES_DIR/MenuBarIcon.imageset/"
+cp "$SOURCE_DIR/Assets.xcassets/MenuBarIcon.imageset/menu_icon_48.png" "$RESOURCES_DIR/MenuBarIcon.imageset/"
+
+if [[ -f "$SOURCE_DIR/AppIcon.icns" ]]; then
+  cp "$SOURCE_DIR/AppIcon.icns" "$RESOURCES_DIR/AppIcon.icns"
 fi
 
 chmod +x "$MACOS_DIR/DebugProcessWatcher"
 
-# Ad-hoc sign all nested bundles and the main app (required for macOS 15+)
-codesign --force --deep --sign - "$APP_DIR/DebugProcessWatcher_DebugProcessWatcher.bundle"
-codesign --force --deep --sign - "$APP_DIR"
+# Ad-hoc sign the main app (no nested bundles to sign separately)
+codesign --force --sign - "$APP_DIR"

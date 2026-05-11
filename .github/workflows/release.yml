@@ -10,8 +10,18 @@ permissions:
   contents: write
 
 jobs:
-  build-release:
-    runs-on: macos-latest
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            runner: macos-latest
+            artifact_suffix: arm64
+          - arch: x64
+            runner: macos-15-intel
+            artifact_suffix: x64
+    runs-on: ${{ matrix.runner }}
 
     steps:
       - name: Checkout
@@ -25,22 +35,41 @@ jobs:
 
       - name: Package App Bundle
         run: |
-          mkdir -p Artifacts/Release
+          mkdir -p "Artifacts/Release/${{ matrix.arch }}"
           BUILD_CONFIGURATION=release \
-          OUTPUT_APP_DIR="$PWD/Artifacts/Release/DebugProcessWatcher.app" \
+          OUTPUT_APP_DIR="$PWD/Artifacts/Release/${{ matrix.arch }}/DebugProcessWatcher.app" \
           ./Scripts/package-app.sh
 
       - name: Ad Hoc Sign App
-        run: codesign --force --deep --sign - "Artifacts/Release/DebugProcessWatcher.app"
+        run: codesign --force --deep --sign - "Artifacts/Release/${{ matrix.arch }}/DebugProcessWatcher.app"
 
       - name: Create Zip Archive
         run: |
+          mkdir -p Artifacts/ReleaseZips
           ditto -c -k --keepParent \
-            "Artifacts/Release/DebugProcessWatcher.app" \
-            "Artifacts/Release/DebugProcessWatcher-macOS.zip"
+            "Artifacts/Release/${{ matrix.arch }}/DebugProcessWatcher.app" \
+            "Artifacts/ReleaseZips/DebugProcessWatcher-macOS-${{ matrix.artifact_suffix }}.zip"
+
+      - name: Upload Release Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.artifact_suffix }}
+          path: Artifacts/ReleaseZips/DebugProcessWatcher-macOS-${{ matrix.artifact_suffix }}.zip
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download Release Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: Artifacts/Release
+          merge-multiple: true
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: Artifacts/Release/DebugProcessWatcher-macOS.zip
+          files: Artifacts/Release/*.zip
           generate_release_notes: true
